@@ -1,4 +1,4 @@
 dash==3.2.0
-pandas
-numpy
-warnings
+pandas==2.2.3
+numpy==2.2.2
+gunicorn
