@@ -13,6 +13,7 @@ warnings.filterwarnings('ignore')
 
 app = dash.Dash(__name__)
 server = app.server
+app.title = "UConn Women's Soccer | Game Comparison Tool"
 
 # read in data and clean column names
 fall_2024_stats = pd.read_csv('data/team_stats_uconn_huskies_fall_2024.csv')
