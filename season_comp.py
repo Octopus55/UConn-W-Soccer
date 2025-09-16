@@ -17,9 +17,11 @@ server = app.server
 # read in data and clean column names
 fall_2024_stats = pd.read_csv('data/team_stats_uconn_huskies_fall_2024.csv')
 fall_2024_stats = clean_col_names(fall_2024_stats)
+fall_2024_stats = better_add_opp(fall_2024_stats)
 
 fall_2025_stats = pd.read_csv('data/team_stats_uconn_huskies_fall_2025.csv')
 fall_2025_stats = clean_col_names(fall_2025_stats)
+fall_2025_stats = better_add_opp(fall_2025_stats)
 
 # Concatanate 2024 and 2025 together
 season_comp = pd.concat([fall_2025_stats, fall_2024_stats]).reset_index(drop=True)
@@ -62,9 +64,14 @@ season_comp['opponent'] = season_comp.apply(
 # Back to title case and rename specific columns
 season_comp.columns = season_comp.columns.str.replace('_', ' ').str.title()
 mapper = {'Passes To Final Third Accurate': 'Final Third Entries',
-          'Ppda': 'PPDA', 'Xg': 'xG'}
-season_comp = season_comp.rename(columns=mapper, inplace=False)
+          'Ppda': 'PPDA', 'Xg': 'xG', 'Crosses Accurate': 'Completed Crosses',
+          'Accurate Passes': 'Completed Passes'}
+mapper_opp = {}
+for key, value in mapper.items():
+    mapper_opp['Opp ' + key] = 'Opp ' + value
 
+season_comp = season_comp.rename(columns=mapper, inplace=False)
+season_comp = season_comp.rename(columns=mapper_opp, inplace=False)
 
 app.layout = html.Div(className = 'wrapper', children = [
     html.H1('Game Comparison Tool', className = 'main-title'),
@@ -74,11 +81,11 @@ app.layout = html.Div(className = 'wrapper', children = [
                       html.Li('Games in light gray are from the 2024 season'),
                       html.Li('Click on criterias in the legend to filter out such points')]),
     html.Label('Select X Variable', className = 'label'),
-    dcc.Dropdown(season_comp.columns[7:110], id='x-axis', value='Final Third Entries',
+    dcc.Dropdown(season_comp.columns[7:213], id='x-axis', value='Final Third Entries',
                  style={'width': '50%'}),
     html.Br(),
     html.Label('Select Y Variable', className = 'label'),
-    dcc.Dropdown(season_comp.columns[7:110], id='y-axis', value='PPDA',
+    dcc.Dropdown(season_comp.columns[7:213], id='y-axis', value='PPDA',
                  style={'width': '50%'}),
     dcc.Graph(id='scatter-plot')
 ])
