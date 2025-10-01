@@ -111,6 +111,11 @@ def better_add_opp(data):
     
     # Rename columns and assign
     opp_data.columns = ['opp_' + col for col in opp_data.columns]
+
+    # Match original dtypes
+    for orig_col, opp_col in zip(target_cols, opp_data.columns):
+        opp_data[opp_col] = opp_data[opp_col].astype(data[orig_col].dtype)
+
     return pd.concat([data, opp_data], axis=1)
 
 def snake_columns(data):
