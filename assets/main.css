@@ -1,0 +1,43 @@
+#mean-line-mode {
+    border: solid black 1px;
+}
+
+.box {
+    background-color: white;
+    width: 10rem;
+    display: inline-block;
+    margin: 0.5rem;
+    text-align: center;
+    border: 2px black solid;
+    padding: 0.2rem;
+}
+
+.win {
+    background-color: lightgreen;
+}
+
+.draw {
+    background-color: lightgray;
+}
+
+.loss {
+    background-color: lightcoral;
+}
+
+#gbs {
+    text-align: left;
+    margin-left: 5%;
+    margin-right: 5%;
+}
+
+h4 {
+    font-size: 14px;
+}
+
+.oppteamname {
+    margin-bottom: 0;
+}
+
+.gamedate {
+    margin-top: 0;
+}
