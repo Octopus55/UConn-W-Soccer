@@ -5,6 +5,7 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 import pandas as pd
 import numpy as np
+from datetime import timedelta
 import warnings
 from soccer_functions import (clean_col_names, filter_team, numeric_cols,
                               better_add_opp, snake_columns)
@@ -80,6 +81,8 @@ app.layout = html.Div(className = 'wrapper', children = [
     html.Ul(children=[html.Li('Select variables for the x and y axis using the dropdowns'),
                       html.Li('Hover over the individual points for more detailed information'),
                       html.Li('Games in light gray are from the 2024 season'),
+                      html.Li('Select whether to show mean lines and what season(s) to take the average of'),
+                      html.Li('See game boxes below the graph for game comparison purposes'),
                       html.Li('Click on criterias in the legend to filter out such points')]),
     html.Label('Select X Variable', className = 'label'),
     dcc.Dropdown(season_comp.columns[7:213], id='x-axis', value='Final Third Entries',
@@ -88,15 +91,37 @@ app.layout = html.Div(className = 'wrapper', children = [
     html.Label('Select Y Variable', className = 'label'),
     dcc.Dropdown(season_comp.columns[7:213], id='y-axis', value='PPDA',
                  style={'width': '50%'}),
-    dcc.Graph(id='scatter-plot')
+    html.Br(),
+    html.Div([html.Label('Select Mean Lines'),
+        dcc.RadioItems(id='mean-line-mode',
+        options=[
+            {'label': 'None', 'value': 'none'},
+            {'label': '2024 and 2025 Games', 'value': 'all'},
+            {'label': '2025 Games Only', 'value': 'filtered'},
+        ],
+        value='none',  # default selection
+        labelStyle={'display': 'inline-block', 'margin-right': '30px'}  # horizontal layout
+    )], style={'width': '34%'}),
+    dcc.Graph(id='scatter-plot'),
+    html.Br(),
+    html.Div(id = 'gbs', className = 'gbsection', children = [
+        html.Div(className = 'box ' + str(season_comp.loc[season_comp['Result 2025'] != '2025', 'Result 2025'][i]), children = [
+            html.H4(season_comp.loc[i, 'Opponent'], className='oppteamname')
+            ] + [
+            html.H4((season_comp.loc[i, 'Date'] - timedelta(days=1)).strftime("%m/%d/%y"), className='gamedate')
+            ] + [
+            html.P('x', id = 'game' + str(i) + str(j)) for j in range(2)
+        ])
+    for i in range(len(fall_2025_stats)//2)])
 ])
 
 @app.callback(
     Output('scatter-plot', 'figure'),
     Input('x-axis', 'value'),
-    Input('y-axis', 'value')
+    Input('y-axis', 'value'),
+    Input('mean-line-mode', 'value')
 )
-def update_plot(x_var, y_var):
+def update_plot(x_var, y_var, mean_line_mode):
     # Define color mapping
     color_map = {
         '2024': '#DDDDDD',
@@ -139,6 +164,51 @@ def update_plot(x_var, y_var):
         category_orders={'Result 2025': ['win', 'draw', 'loss', '2024']}
     )
 
+    # add mean lines (conditionally)
+    if mean_line_mode != 'none':
+
+        if mean_line_mode == 'all':
+            x_mean = season_comp[x_var].mean()
+            y_mean = season_comp[y_var].mean()
+        elif mean_line_mode == 'filtered':
+            x_mean = season_comp.loc[season_comp['Year'] == 2025, x_var].mean()
+            y_mean = season_comp.loc[season_comp['Year'] == 2025, y_var].mean()
+
+        fig.add_shape(
+            type='line',
+            x0=x_mean, x1=x_mean,
+            y0=season_comp[y_var].min(), y1=season_comp[y_var].max(),
+            line=dict(color='black', width=1, dash='dash'),
+            name='Mean X'
+        )
+
+        fig.add_shape(
+            type='line',
+            x0=season_comp[x_var].min(), x1=season_comp[x_var].max(),
+            y0=y_mean, y1=y_mean,
+            line=dict(color='black', width=1, dash='dash'),
+            name='Mean Y'
+        )
+
+        fig.add_annotation(
+            x=x_mean,
+            y=season_comp[y_var].max(),
+            text=f"Mean {x_var}: {x_mean:.2f}",
+            showarrow=False,
+            yshift=10,
+            font=dict(size=10, color='black')
+        )
+
+        fig.add_annotation(
+            x=season_comp[x_var].max(),
+            y=y_mean*1.1,
+            text=f"Mean {y_var}: {y_mean:.2f}",
+            showarrow=False,
+            xshift=-10,
+            font=dict(size=10, color='black')
+        )
+
+
     # Customize label display
     fig.update_traces(
         textposition='top center',
@@ -172,6 +242,24 @@ def update_plot(x_var, y_var):
         width=1200
     )
     return fig
+
+
+# Game Boxes
+@app.callback(
+    [Output('game' + str(i) + str(j), 'children') for i in range(len(fall_2025_stats)//2) for j in range(2)],
+    Input('x-axis', 'value'),
+    Input('y-axis', 'value')
+)
+def update_boxes(x_var, y_var):
+    '''if intercept is None:
+        intercept = 0
+    if slope is None:
+        slope = 0'''
+    #points = pd.DataFrame({'x': range(1, 11), 'y': [intercept + (slope*x) for x in range(1, 11)]})
+    x = [x_var + ' = ' + str(x) for x in season_comp.loc[season_comp['Year'] == 2025, x_var]]
+    y = [y_var + ' = ' + str(y) for y in season_comp.loc[season_comp['Year'] == 2025, y_var]]
+    in_order = [item for pair in zip(x, y) for item in pair]
+    return tuple(in_order)
 
 if __name__ == '__main__':
     app.run(debug = False)
